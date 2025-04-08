@@ -1,65 +1,4 @@
 const API_URL = 'http://solarsuna.com:32345';
-let startTime = null;
-let isPaused = false;
-let promptQueue = [];
-let isProcessingQueue = false;
-
-// 狀態相關變數
-let currentState = null;     // 當前狀態
-let canSend = true;         // 控制是否可以發送訊息
-
-// 更新 promptList 顯示
-function updatePromptList() {
-  const promptListElement = document.getElementById('promptList');
-  promptListElement.innerHTML = '';
-
-  promptQueue.forEach((prompt, index) => {
-    const div = document.createElement('div');
-    div.className = 'prompt-item';
-
-    // 移除所有圖片的 markdown 格式 (![...](...)格式)
-    const textOnly = prompt.replace(/!\[.*?\]\(.*?\)\n/g, '');
-    // 計算圖片數量
-    const imageCount = (prompt.match(/!\[.*?\]\(.*?\)\n/g) || []).length;
-    let displayText = textOnly;
-
-    if (imageCount > 0) {
-      // 若有圖片，顯示 [n] 前綴加上最多18個字
-      displayText = displayText.length > 18 ? displayText.substring(0, 18) + '...' : displayText;
-      displayText = `[${imageCount}] ${displayText}`;
-    } else {
-      // 若無圖片，顯示最多20個字
-      displayText = displayText.length > 20 ? displayText.substring(0, 20) + '...' : displayText;
-    }
-
-    div.textContent = `${index + 1}. ${displayText}`;
-    promptListElement.appendChild(div);
-  });
-}
-
-async function sendTelegram(msg) {
-  // Escape HTML and Telegram special characters
-  const escapedMsg = msg
-    .replace(/[<>&]/g, char => ({
-      '<': '&lt;',
-      '>': '&gt;',
-      '&': '&amp;'
-    })[char]);
-
-  try {
-    const result = await chrome.storage.local.get(['notifyTelegram']);
-    if (result.notifyTelegram) {
-      const response = await fetch(`${API_URL}/notify/telegram`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: escapedMsg })
-      });
-      console.log('[Sidepanel] Telegram notification sent:', await response.text());
-    }
-  } catch (error) {
-    console.error('[Sidepanel] Failed to send Telegram notification:', error);
-  }
-}
 
 document.addEventListener('DOMContentLoaded', function () {
   // Initialize SVG icons
@@ -196,10 +135,10 @@ document.addEventListener('DOMContentLoaded', function () {
       imgListElement.appendChild(div);
     });
 
-    await handleImageDownload(list);
+    await handleVideoDownload(list);
   }
 
-  async function handleImageDownload(list) {
+  async function handleVideoDownload(list) {
     try {
       downloadStatusElement.textContent = 'Status: call API ...';
       const response = await fetch(`${API_URL}/images/download`, {

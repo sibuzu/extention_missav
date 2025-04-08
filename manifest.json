@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "MyGPT Extension",
+  "name": "MissAV Extension",
   "version": "1.0",
-  "description": "Send selected text to ChatGPT",
+  "description": "Download video from MissAV",
   "permissions": [
     "contextMenus",
     "storage",
@@ -11,9 +11,8 @@
     "scripting"
   ],
   "host_permissions": [
-    "https://chat.openai.com/*",
-    "https://chatgpt.com/*",
-    "http://solarsuna.com:32345/*"
+    "https://missav.ai/*",
+    "https://missav.wc/*"
   ],
   "action": {
     "default_icon": {
@@ -36,8 +35,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://chat.openai.com/*",
-        "https://chatgpt.com/*"
+        "https://missav.ai/*",
+        "https://missav.wc/*"
       ],
       "js": ["content.js"],
       "run_at": "document_idle"

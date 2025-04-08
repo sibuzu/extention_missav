@@ -25,56 +25,26 @@
         <div class="toggle-icon-container" data-state="open"></div>
       </div>
       <div class="panel-content" style="display: block;">
-        <div class="notify-section">
-          <label>
-            <input type="checkbox" id="notifyTelegram" style="width: auto; margin-right: 5px;"> Notify Telegram When
-            Ready
-          </label>
-        </div>
+        <div id="title">Title:</div>
+        <div id="image">Image:</div>
         <div id="state">State:</div>
-        <div id="elapsedTime">Elapsed:</div>
-      </div>
-    </div>
-
-    <!-- Send Message Panel -->
-    <div class="panel">
-      <div class="panel-header">
-        Send Message
-        <div class="toggle-icon-container" data-state="open"></div>
-      </div>
-      <div class="input-section">
-        <div id="messageInput" class="message-input" contenteditable="true"
-          placeholder="Type your message or paste an image..."></div>
-        <div class="button-container">
-          <button id="sendMsg">Send</button>
-          <button id="clearQueue">Clear</button>
-          <button id="uploadBtn">Upload</button>
-          <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
-          <button id="scriptBtn">Script</button>
-          <input type="file" id="scriptInput" accept=".json" style="display: none;">
-        </div>
-        <div class="pause-checkbox">
-          <input type="checkbox" id="pauseQueue"> Pause
-        </div>
-        <div id="promptList" class="mt-2">
-          <!-- Prompt list will be displayed here -->
-        </div>
+        <div id="description">Description:</div>
       </div>
     </div>
 
     <!-- Image Download Panel - Initially collapsed -->
     <div class="panel">
       <div class="panel-header">
-        Image Download
+        Video Download
         <div class="toggle-icon-container" data-state="closed"></div>
       </div>
       <div class="panel-content" style="display: none;">
-        <button id="downloadImages">Download</button>
+        <button id="downloadVideo">Download</button>
         <div id="downloadStatus">Status:</div>
-        <div id="pageId">PageID:</div>
-        <div id="totalTurns">Total Turns: 0</div>
-        <div id="imgList" class="mt-2">
-          <!-- Image list will be displayed here -->
+        <div id="source">Source:</div>
+        <div id="totalVideos">Videos: 0</div>
+        <div id="videoList" class="mt-2">
+          <!-- Video list will be displayed here -->
         </div>
       </div>
     </div>

@@ -15,10 +15,6 @@ document.addEventListener('DOMContentLoaded', function () {
     container.appendChild(clone);
   });
 
-  // 元素獲取
-  const downloadVideoButton = document.getElementById('downloadVideo');
-  const downloadStatusElement = document.getElementById('downloadStatus');
-  
   // 初始化可折疊面板
   const headers = document.querySelectorAll('.panel-header');
   headers.forEach(header => {
@@ -39,6 +35,38 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   });
+
+  // 更新頁面信息的函數
+  function updatePageInfo(info) {
+    document.getElementById('title').textContent = `Title: ${info.title}`;
+    document.getElementById('url').textContent = `URL: ${info.url}`;
+    document.getElementById('image').textContent = `Image: ${info.image}`;
+    document.getElementById('description').textContent = `Description: ${info.description}`;
+  }
+
+  // 請求當前頁面信息
+  async function requestPageInfo() {
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tabs[0]) {
+        await chrome.tabs.sendMessage(tabs[0].id, { type: 'getPageInfo' });
+      }
+    } catch (error) {
+      console.error('[Sidepanel] Error requesting page info:', error);
+    }
+  }
+
+  // 監聽來自 content script 的消息
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('[Sidepanel] Received message:', request);
+
+    if (request.type === 'pageInfo') {
+      updatePageInfo(request.data);
+    }
+  });
+
+  // 初始化時請求頁面信息
+  requestPageInfo();
 
   // Download Images button click handler
   downloadVideoButton.addEventListener('click', async function () {

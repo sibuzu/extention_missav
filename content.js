@@ -4,57 +4,41 @@ console.log('[Content] Script loaded');
 function checkVideoSources() {
     console.log('[Content] Checking video sources');
     try {
-        // 嘗試獲取視頻源
-        console.log('[Content] source1280:', window.source1280);
-        
-        // find 
-        // <meta property="og:image" content="https://fourhoi.com/jul-530-uncensored-leak/cover-n.jpg">
-        const metaElement = document.querySelector('meta[property="og:image"]');
-        if (metaElement) {
-            console.log('[Content] og:image content:', metaElement.content);
-        }
+        // 收集頁面信息
+        const pageInfo = {
+            title: document.querySelector('title')?.textContent || '',
+            url: document.querySelector('meta[property="og:url"]')?.content || window.location.href,
+            image: document.querySelector('meta[property="og:image"]')?.content || '',
+            description: document.querySelector('meta[property="og:description"]')?.content || ''
+        };
 
-        // <meta property="og:url" content="https://missav.ai/dm39/ja/jul-530-uncensored-leak">
-        const ogUrlElement = document.querySelector('meta[property="og:url"]');
-        if (ogUrlElement) {
-            console.log('[Content] og:url content:', ogUrlElement.content);
-        } 
+        console.log('[Content] Page info:', pageInfo);
 
-        // <title>...</title>
-        const titleElement = document.querySelector('title');
-        if (titleElement) {
-            console.log('[Content] title content:', titleElement.textContent);
-        } 
+        // 發送到 sidepanel
+        chrome.runtime.sendMessage({
+            type: 'pageInfo',
+            data: pageInfo
+        });
 
-        // <meta property="og:description">
-        const ogDescriptionElement = document.querySelector('meta[property="og:description"]');
-        if (ogDescriptionElement) {
-            console.log('[Content] og:description content:', ogDescriptionElement.content);
-        }
     } catch (error) {
         console.error('[Content] Error in checkVideoSources:', error);
     }
 }
 
-function init() {
-    console.log('[Content] Init function called');
-    checkVideoSources();
-}
-
-// 立即執行初始化
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    console.log('[Content] Document already ready, initializing...');
-    init();
-} else {
-    console.log('[Content] Waiting for DOMContentLoaded');
-    document.addEventListener('DOMContentLoaded', init);
-}
-
-// 保持消息監聽器
+// 監聽來自 sidepanel 的請求
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('[Content] Message received:', request);
-    if (request.type === 'ping') {
-        console.log('[Content] Ping received, sending response');
-        sendResponse({ status: 'ok' });
+    
+    if (request.type === 'getPageInfo') {
+        // 立即檢查並發送頁面信息
+        checkVideoSources();
+        sendResponse({ status: 'checking' });
     }
 });
+
+// 初始化時執行檢查
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    checkVideoSources();
+} else {
+    document.addEventListener('DOMContentLoaded', checkVideoSources);
+}

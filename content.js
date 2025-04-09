@@ -30,8 +30,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('[Content] Message received:', request);
     
     if (request.type === 'getPageInfo') {
-        // 立即檢查並發送頁面信息
         checkVideoSources();
+        sendResponse({ status: 'checking' });
+    } else if (request.type === 'getVideoSource') {
+        // 取得 source1280 的值
+        const videoSource = window.source1280 || 'undefined_source1280';
+        console.log('[Content] Video source:', videoSource);
+        
+        // 發送回 sidepanel
+        chrome.runtime.sendMessage({
+            type: 'videoSource',
+            data: videoSource
+        });
+        
         sendResponse({ status: 'checking' });
     }
 });

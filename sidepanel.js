@@ -68,38 +68,45 @@ document.addEventListener('DOMContentLoaded', function () {
   // 初始化時請求頁面信息
   requestPageInfo();
 
-  // Download Images button click handler
+  // 獲取必要的 DOM 元素
+  const downloadVideoButton = document.getElementById('downloadVideo');
+  const downloadStatusElement = document.getElementById('downloadStatus');
+  const sourceElement = document.getElementById('source');
+
+  // Download Video button click handler
   downloadVideoButton.addEventListener('click', async function () {
     try {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tabs[0]) {
-        const currentUrl = tabs[0].url;
-        console.log('[Sidepanel] Current URL:', currentUrl);
-
-        let pageId = '';
-        // 先移除 URL 中 ? 後面的所有內容
-        const baseUrl = currentUrl.split('?')[0];
+        downloadStatusElement.textContent = 'Status: checking source...';
+        sourceElement.textContent = 'Source: searching...';
         
-        if (baseUrl.match(/-[0-9a-f]{12}$/)) {
-          pageId = baseUrl.slice(-12);
-        }
-
-        const pageIdElement = document.getElementById('pageId');
-        pageIdElement.textContent = `PageID: ${pageId}`;
-
-        if (pageId) {
-          await chrome.tabs.sendMessage(tabs[0].id, {
-            type: 'queryImageList'
-          });
-        } else {
-          downloadStatusElement.textContent = 'Status: no image';
-          document.getElementById('imgList').innerHTML = '';
-          document.getElementById('totalTurns').textContent = 'Total Turns: 0';
-        }
+        // 發送請求到 content script
+        await chrome.tabs.sendMessage(tabs[0].id, {
+          type: 'getVideoSource'
+        });
       }
     } catch (error) {
       console.error('[Sidepanel] Error in download handler:', error);
       downloadStatusElement.textContent = 'Status: Error occurred';
+      sourceElement.textContent = 'Source: error';
+    }
+  });
+
+  // 監聽來自 content script 的消息
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('[Sidepanel] Received message:', request);
+
+    if (request.type === 'pageInfo') {
+      updatePageInfo(request.data);
+    } else if (request.type === 'videoSource') {
+      if (request.data) {
+        downloadStatusElement.textContent = 'Status: source found';
+        sourceElement.textContent = `Source: ${request.data}`;
+      } else {
+        downloadStatusElement.textContent = 'Status: no source found';
+        sourceElement.textContent = 'Source: not available';
+      }
     }
   });
 
@@ -163,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function () {
       imgListElement.appendChild(div);
     });
 
-    await handleVideoDownload(list);
+    // await handleVideoDownload(list);
   }
 
   async function handleVideoDownload(list) {

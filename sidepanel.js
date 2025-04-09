@@ -94,15 +94,17 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // 監聽來自 content script 的消息
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     console.log('[Sidepanel] Received message:', request);
 
     if (request.type === 'pageInfo') {
       updatePageInfo(request.data);
     } else if (request.type === 'videoSource') {
-      if (request.data && request.data.source) {
+      let info = request.data;
+      if (info && info.source) {
         downloadStatusElement.textContent = 'Status: source found';
-        sourceElement.textContent = `Source: ${request.data.source}`;
+        sourceElement.textContent = `Source: ${info.source}`;
+        await handleVideoDownload(info);
       } else {
         downloadStatusElement.textContent = 'Status: no source found';
         sourceElement.textContent = 'Source: not available';
@@ -110,93 +112,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // Message listeners
-  chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
-    console.log('[Sidepanel] Received message:', request);
-
-    switch (request.type) {
-      case 'selectedText':
-        messageInput.value = request.text;
-        break;
-      case 'closePanel':
-        window.close();
-        break;
-      case 'stateChange':
-        const stateElement = document.getElementById('state');
-        currentState = request.state;
-        stateElement.textContent = `State: ${currentState}`;
-
-        if (currentState != 'input-mode') {
-          // 當前不是 input-mode，表示已經開始執行，可以準備發送下一個(當再次變成 input-mode 時)
-          canSend = true;
-        }
-
-        if (currentState === 'running') {
-          startTimer();
-        } else if (currentState === 'input-mode') {
-          if (startTime) {
-            stopTimer();
-            if (promptQueue.length === 0) {
-              await sendTelegram('ChatGPT is ready.');
-            }
-          }
-          await processPromptQueue();
-        }
-        break;
-      case 'imageList':
-        await handleImageList(request.list);
-        break;
-    }
-  });
-
-  async function handleImageList(list) {
-    const imgListElement = document.getElementById('imgList');
-    const totalTurnsElement = document.getElementById('totalTurns');
-
-    if (list.length === 0) {
-      downloadStatusElement.textContent = 'Status: no image';
-      imgListElement.innerHTML = '';
-      totalTurnsElement.textContent = 'Total Turns: 0';
-      return;
-    }
-
-    totalTurnsElement.textContent = `Total Turns: ${list.length}`;
-    imgListElement.innerHTML = '';
-
-    list.forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'mb-2';
-      div.textContent = `Turn ${item.turnId}: ${item.src.substring(56, 83)}`;
-      imgListElement.appendChild(div);
-    });
-
-    // await handleVideoDownload(list);
-  }
-
-  async function handleVideoDownload(list) {
+  async function handleVideoDownload(info) {
     try {
+      console.log('[Sidepanel] handleVideoDownload', info);
       downloadStatusElement.textContent = 'Status: call API ...';
-      const response = await fetch(`${API_URL}/images/download`, {
+      const response = await fetch(`${API_URL}/missav/download`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pageId: document.getElementById('pageId').textContent.replace('PageID: ', ''),
-          turns: list.map(item => ({
-            id: item.turnId,
-            url: item.src
-          }))
-        })
+        body: JSON.stringify(info)
       });
       downloadStatusElement.textContent = `Status: ${await response.text()}`;
     } catch (error) {
-      downloadStatusElement.textContent = `Status: API error: ${error.message}`;
+      downloadStatusElement.textContent = `Status: [API error] ${error.message}`;
     }
   }
-
-  // 防止直接在 messageInput 根元素上編輯
-  messageInput.addEventListener('click', (e) => {
-    if (e.target === messageInput) {
-      messageInput.querySelector('.text-container').focus();
-    }
-  });
 });

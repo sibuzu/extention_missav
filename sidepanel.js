@@ -76,9 +76,24 @@ document.addEventListener('DOMContentLoaded', function () {
   const listVideoElement = document.getElementById('listVideo');
   const queueStatsElement = document.getElementById('queueStats');
 
-  // 下載和佇列圖示模板
+  // 所有狀態的圖示模板
   const downloadIconTemplate = document.getElementById('download-icon-template');
   const queueIconTemplate = document.getElementById('queue-icon-template');
+  const completedIconTemplate = document.getElementById('completed-icon-template');
+  const defaultIconTemplate = document.getElementById('default-icon-template');
+
+  function getStatusIcon(status) {
+    switch (status) {
+      case 'downloading':
+        return downloadIconTemplate.content.cloneNode(true);
+      case 'queued':
+        return queueIconTemplate.content.cloneNode(true);
+      case 'completed':
+        return completedIconTemplate.content.cloneNode(true);
+      default:
+        return defaultIconTemplate.content.cloneNode(true);
+    }
+  }
 
   // Download Video button click handler
   downloadVideoButton.addEventListener('click', async function () {
@@ -86,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tabs[0]) {
         sourceElement.textContent = 'Source: searching...';
-        
+
         // 發送請求到 content script
         await chrome.tabs.sendMessage(tabs[0].id, {
           type: 'getVideoSource'
@@ -100,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // Query Video button click handler
-  queryVideoButton.addEventListener('click', async function() {
+  queryVideoButton.addEventListener('click', async function () {
     try {
       const response = await fetch(`${API_URL}/missav/queue`);
       const data = await response.json();
@@ -122,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 建立表格
     const table = document.createElement('table');
-    
+
     // 表頭
     const thead = document.createElement('thead');
     thead.innerHTML = `
@@ -138,28 +153,22 @@ document.addEventListener('DOMContentLoaded', function () {
     const tbody = document.createElement('tbody');
     data.queue.forEach(item => {
       const tr = document.createElement('tr');
-      
+
       // ID 欄位
       const tdId = document.createElement('td');
       tdId.textContent = item.task_id;
-      
+
       // Status 欄位
       const tdStatus = document.createElement('td');
-      const statusIcon = item.status === 'downloading' 
-        ? downloadIconTemplate.content.cloneNode(true)
-        : queueIconTemplate.content.cloneNode(true);
+      const statusIcon = getStatusIcon(item.status);
       tdStatus.appendChild(statusIcon);
       tdStatus.classList.add(item.status);
-      
-      // Progress 欄位
+
+      // Progress 欄位 - 改為文字顯示
       const tdProgress = document.createElement('td');
-      const progressBar = document.createElement('div');
-      progressBar.className = 'progress-bar';
-      const progressFill = document.createElement('div');
-      progressFill.className = 'progress-bar-fill';
-      progressFill.style.width = `${item.progress}%`;
-      progressBar.appendChild(progressFill);
-      tdProgress.appendChild(progressBar);
+      tdProgress.className = 'progress-text';
+      const progress = item.status === 'completed' ? 100 : item.progress;
+      tdProgress.textContent = progress.toFixed(1) + '%';
 
       tr.appendChild(tdId);
       tr.appendChild(tdStatus);
@@ -168,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     table.appendChild(tbody);
-    
+
     // 清空並更新列表內容
     listVideoElement.innerHTML = '';
     listVideoElement.appendChild(table);
@@ -178,18 +187,26 @@ document.addEventListener('DOMContentLoaded', function () {
   chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     console.log('[Sidepanel] Received message:', request);
 
-    if (request.type === 'pageInfo') {
-      updatePageInfo(request.data);
-    } else if (request.type === 'videoSource') {
-      let info = request.data;
-      if (info && info.source) {
-        taskStatusElement.textContent = 'Status: source found';
-        sourceElement.textContent = `Source: ${info.source}`;
-        await handleVideoDownload(info);
-      } else {
-        taskStatusElement.textContent = 'Status: no source found';
-        sourceElement.textContent = 'Source: not available';
-      }
+    switch (request.type) {
+      case 'pageInfo':
+        updatePageInfo(request.data);
+        break;
+      
+      case 'videoSource':
+        let info = request.data;
+        if (info && info.source) {
+          taskStatusElement.textContent = 'Status: source found';
+          sourceElement.textContent = `Source: ${info.source}`;
+          await handleVideoDownload(info);
+        } else {
+          taskStatusElement.textContent = 'Status: no source found';
+          sourceElement.textContent = 'Source: not available';
+        }
+        break;
+      
+      case 'closePanel':
+        window.close();
+        break;
     }
   });
 
@@ -197,20 +214,20 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       console.log('[Sidepanel] handleVideoDownload', info);
       taskStatusElement.textContent = 'Status: call API ...';
-      
+
       const response = await fetch(`${API_URL}/missav/download`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(info)
       });
-      
+
       const result = await response.json();
-      
+
       // 更新下載狀態資訊
       document.getElementById('taskId').textContent = `Task ID: ${result.task_id}`;
       document.getElementById('taskStatus').textContent = `Status: ${result.status}`;
       document.getElementById('taskMessage').textContent = `Message: ${result.message}`;
-      
+
     } catch (error) {
       taskStatusElement.textContent = `Status: [API error] ${error.message}`;
       document.getElementById('taskId').textContent = 'Task ID: -';

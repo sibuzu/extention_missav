@@ -134,3 +134,47 @@ button:hover {
 /* Utility */
 .mb-2 { margin-bottom: 2px; }
 .mt-2 { margin-top: 2px; }
+
+/* Video List Table */
+.video-list-table {
+  margin-top: 10px;
+  width: 100%;
+}
+
+.video-list-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.video-list-table th,
+.video-list-table td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.status-icon {
+  vertical-align: middle;
+}
+
+.downloading {
+  color: #2563eb;
+}
+
+.queued {
+  color: #9ca3af;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background-color: #e5e7eb;
+  border-radius: 3px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #2563eb;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}

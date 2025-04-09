@@ -53,43 +53,66 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ status: 'checking' });
   } else if (request.type === 'getVideoSource') {
     try {
-      // 直接使用解密函數
-      const result = decrypt(
-        'f=\'8://7.6/5-4-3-2-1/e.0\';d=\'8://7.6/5-4-3-2-1/c/9.0\';b=\'8://7.6/5-4-3-2-1/a/9.0\';',
-        16,
-        16,
-        'm3u8|458deb87594e|b8d5|4922|89bb|4dbfa06c|com|surrit|https|video|1280x720|source1280|842x480|source842|playlist|source'.split('|'),
-        0,
-        {}
-      );
+      // 從頁面源碼中找到加密的字串
+      const scripts = document.getElementsByTagName('script');
+      
+      for (const script of scripts) {
+        const content = script.textContent || '';
+        // 找出包含 eval 的那一行
+        const evalLine = content.split('\n').find(line => line.includes('eval'));
+        if (evalLine) {
+          console.log('[Content] Found eval line:', evalLine);
+          
+          // 第一步：匹配整個函數調用的參數部分
+          const paramsMatch = evalLine.match(/\(([^)]+)\)/g);
+          if (paramsMatch && paramsMatch.length >= 2) {
+            // 取得最後一組參數（通常是第二組）
+            const params = paramsMatch[paramsMatch.length - 1];
+            console.log('[Content] Found params:', params);
+            
+            // 第二步：解析參數
+            const paramValues = params.match(/\('((?:[^'\\]|\\.)+)',(\d+),(\d+),'([^']+)'/);
+            if (paramValues) {
+              const [_, p, a, c, k] = paramValues;
+              console.log('[Content] Parsed values:', { p, a, c, k });
+              
+              // 直接使用解密函數
+              const result = decrypt(p, parseInt(a), parseInt(c), k.split('|'), 0, {});
+              console.log('[Content] Decrypted result:', result);
 
-      console.log('[Content] Decrypted result:', result);
-
-      // 解析結果中的 source1280 URL
-      const match = result.match(/source1280='([^']+)'/);
-      if (match) {
-        const videoSource = match[1];
-        console.log('[Content] Found video source:', videoSource);
-        chrome.runtime.sendMessage({
-          type: 'videoSource',
-          data: videoSource
-        });
-      } else {
-        // 嘗試直接從結果中提取 URL
-        const urlMatch = result.match(/https:\/\/[^']+1280x720\/video\.m3u8/);
-        if (urlMatch) {
-          const videoSource = urlMatch[0];
-          console.log('[Content] Found video source from URL:', videoSource);
-          chrome.runtime.sendMessage({
-            type: 'videoSource',
-            data: videoSource
-          });
-        } else {
-          console.log('[Content] No video source found in result');
-          chrome.runtime.sendMessage({
-            type: 'videoSource',
-            data: ''
-          });
+              // 先嘗試匹配 source1280 的值
+              const source1280Match = result.match(/source1280=\\'(https:\/\/[^']+)\\/);
+              if (source1280Match) {
+                const videoSource = source1280Match[1];
+                console.log('[Content] Found video source from source1280:', videoSource);
+                chrome.runtime.sendMessage({
+                  type: 'videoSource',
+                  data: videoSource
+                });
+              } else {
+                // 如果找不到 source1280，嘗試直接匹配 URL
+                const urlMatch = result.match(/https:\/\/[^']+\/video\.m3u8/);
+                if (urlMatch) {
+                  const videoSource = urlMatch[0];
+                  console.log('[Content] Found video source from URL:', videoSource);
+                  chrome.runtime.sendMessage({
+                    type: 'videoSource',
+                    data: videoSource
+                  });
+                } else {
+                  console.log('[Content] No video source found');
+                  chrome.runtime.sendMessage({
+                    type: 'videoSource',
+                    data: ''
+                  });
+                }
+              }
+            } else {
+              console.log('[Content] Failed to parse parameters:', params);
+            }
+          } else {
+            console.log('[Content] No parameters found in eval line');
+          }
         }
       }
     } catch (error) {

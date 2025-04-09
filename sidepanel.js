@@ -100,9 +100,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (request.type === 'pageInfo') {
       updatePageInfo(request.data);
     } else if (request.type === 'videoSource') {
-      if (request.data) {
+      if (request.data && request.data.source) {
         downloadStatusElement.textContent = 'Status: source found';
-        sourceElement.textContent = `Source: ${request.data}`;
+        sourceElement.textContent = `Source: ${request.data.source}`;
       } else {
         downloadStatusElement.textContent = 'Status: no source found';
         sourceElement.textContent = 'Source: not available';

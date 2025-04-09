@@ -48,6 +48,7 @@ const decrypt = (p, a, c, k, e, d) => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('[Content] Message received:', request);
 
+  let videoSource = '';
   if (request.type === 'getPageInfo') {
     checkVideoSources();
     sendResponse({ status: 'checking' });
@@ -83,28 +84,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               // 先嘗試匹配 source1280 的值
               const source1280Match = result.match(/source1280=\\'(https:\/\/[^']+)\\/);
               if (source1280Match) {
-                const videoSource = source1280Match[1];
+                videoSource = source1280Match[1];
                 console.log('[Content] Found video source from source1280:', videoSource);
-                chrome.runtime.sendMessage({
-                  type: 'videoSource',
-                  data: videoSource
-                });
               } else {
                 // 如果找不到 source1280，嘗試直接匹配 URL
                 const urlMatch = result.match(/https:\/\/[^']+\/video\.m3u8/);
                 if (urlMatch) {
-                  const videoSource = urlMatch[0];
+                  videoSource = urlMatch[0];
                   console.log('[Content] Found video source from URL:', videoSource);
-                  chrome.runtime.sendMessage({
-                    type: 'videoSource',
-                    data: videoSource
-                  });
                 } else {
                   console.log('[Content] No video source found');
-                  chrome.runtime.sendMessage({
-                    type: 'videoSource',
-                    data: ''
-                  });
                 }
               }
             } else {
@@ -117,11 +106,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     } catch (error) {
       console.error('[Content] Error in decrypt:', error);
-      chrome.runtime.sendMessage({
-        type: 'videoSource',
-        data: ''
-      });
     }
+
+    const pageInfo = {
+      title: document.querySelector('title')?.textContent || '',
+      url: document.querySelector('meta[property="og:url"]')?.content || window.location.href,
+      image: document.querySelector('meta[property="og:image"]')?.content || '',
+      description: document.querySelector('meta[property="og:description"]')?.content || '',
+      source: videoSource
+    };
+
+    chrome.runtime.sendMessage({
+      type: 'videoSource',
+      data: pageInfo
+    });
 
     sendResponse({ status: 'checking' });
   }
